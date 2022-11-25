@@ -361,7 +361,7 @@ class Visualizer:
 
     # TODO implement a fast, rasterized version using OpenCV
 
-    def __init__(self, img_rgb, is_seg=True, metadata=None, scale=1.0, instance_mode=ColorMode.IMAGE):
+    def __init__(self, img_rgb, is_img=True, metadata=None, scale=1.0, instance_mode=ColorMode.IMAGE):
         """
         Args:
             img_rgb: a numpy array of shape (H, W, C), where H and W correspond to
@@ -373,7 +373,10 @@ class Visualizer:
             instance_mode (ColorMode): defines one of the pre-defined style for drawing
                 instances on an image.
         """
-        self.img = np.asarray(img_rgb).clip(0, 255).astype(np.uint8)
+        if is_img:
+            self.img = np.asarray(img_rgb).clip(0, 255).astype(np.uint8)
+        else:
+            self.img = np.zeros_like(img_rgb).clip(0, 255).astype(np.uint8)
         if metadata is None:
             metadata = MetadataCatalog.get("__nonexist__")
         self.metadata = metadata
@@ -478,7 +481,7 @@ class Visualizer:
         return self.output
     
     
-    def draw_instance_predictions(self, predictions, alpha=0.8):
+    def draw_instance_predictions(self, predictions, alpha=0.8, is_text=True):
         """
         Draw instance-level prediction results on an image.
         Args:
@@ -526,10 +529,11 @@ class Visualizer:
             keypoints=keypoints,
             assigned_colors=colors,
             alpha=alpha,
+            is_text=is_text,
         )
         return self.output
 
-    def draw_sem_seg(self, sem_seg, area_threshold=None, alpha=0.8):
+    def draw_sem_seg(self, sem_seg, area_threshold=None, alpha=0.8, is_text=True):
         """
         Draw semantic segmentation predictions/labels.
         Args:
@@ -560,10 +564,11 @@ class Visualizer:
                 text=text,
                 alpha=alpha,
                 area_threshold=area_threshold,
+                is_text=is_text,
             )
         return self.output
 
-    def draw_panoptic_seg(self, panoptic_seg, segments_info, area_threshold=None, alpha=0.7):
+    def draw_panoptic_seg(self, panoptic_seg, segments_info, area_threshold=None, alpha=0.7, is_text=True,):
         """
         Draw panoptic prediction annotations or results.
         Args:
@@ -598,6 +603,7 @@ class Visualizer:
                 text=text,
                 alpha=alpha,
                 area_threshold=area_threshold,
+                is_text=is_text,
             )
 
         # draw mask for all instances second
@@ -621,7 +627,7 @@ class Visualizer:
             ]
         except AttributeError:
             colors = None
-        self.overlay_instances(masks=masks, labels=labels, assigned_colors=colors, alpha=alpha)
+        self.overlay_instances(masks=masks, labels=labels, assigned_colors=colors, alpha=alpha, is_text=is_text)
 
         return self.output
 
@@ -703,6 +709,7 @@ class Visualizer:
         keypoints=None,
         assigned_colors=None,
         alpha=0.5,
+        is_text=True,
     ):
         """
         Args:
@@ -821,13 +828,14 @@ class Visualizer:
                     * 0.5
                     * self._default_font_size
                 )
-                self.draw_text(
-                    labels[i],
-                    text_pos,
-                    color=lighter_color,
-                    horizontal_alignment=horiz_align,
-                    font_size=font_size,
-                )
+                if is_text:
+                    self.draw_text(
+                        labels[i],
+                        text_pos,
+                        color=lighter_color,
+                        horizontal_alignment=horiz_align,
+                        font_size=font_size,
+                    )
 
         # draw keypoints
         if keypoints is not None:
@@ -1115,7 +1123,7 @@ class Visualizer:
         return self.output
 
     def draw_binary_mask(
-        self, binary_mask, color=None, *, edge_color=None, text=None, alpha=0.5, area_threshold=10
+        self, binary_mask, color=None, *, edge_color=None, text=None, alpha=0.5, area_threshold=10, is_text=True,
     ):
         """
         Args:
@@ -1159,9 +1167,10 @@ class Visualizer:
             has_valid_segment = True
             self.output.ax.imshow(rgba, extent=(0, self.output.width, self.output.height, 0))
 
-        if text is not None and has_valid_segment:
-            lighter_color = self._change_color_brightness(color, brightness_factor=0.7)
-            self._draw_text_in_mask(binary_mask, text, lighter_color)
+        if is_text:
+            if text is not None and has_valid_segment:
+                lighter_color = self._change_color_brightness(color, brightness_factor=0.7)
+                self._draw_text_in_mask(binary_mask, text, lighter_color)
         return self.output
 
     def draw_soft_mask(self, soft_mask, color=None, *, text=None, alpha=0.5):
