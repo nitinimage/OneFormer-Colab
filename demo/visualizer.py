@@ -68,6 +68,14 @@ class ColorMode(Enum):
     Only available for drawing per-instance mask predictions.
     """
 
+    GAUGAN = 3
+    '''
+    GauGAN requires the semantic segmentation maps to be images with one channel, 
+    where each pixel represents the index of the semantic class it belongs to. 
+    You also need to make sure that the class indices are continuous integers from 0 to n-1 
+    where n is the number of classes.
+    '''
+
 
 class GenericMask:
     """
